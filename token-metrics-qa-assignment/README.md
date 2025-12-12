@@ -4,10 +4,13 @@
 **Position:** Crypto QA Engineer (Global-Remote-Non-US)
 **Assignment:** Design and implement a Python test suite for `get_hyperliquid_price()`
 
+**📊 Results:** 34 tests | 100% passing | 100% coverage | All requirements + stretch goals complete
+
 ---
 
 ## 📋 Table of Contents
 - [Overview](#overview)
+- [What This Demonstrates](#what-this-demonstrates)
 - [Project Structure](#project-structure)
 - [Installation](#installation)
 - [Running Tests](#running-tests)
@@ -35,6 +38,125 @@ This project implements a **production-grade test suite** for a cryptocurrency p
 
 ---
 
+## 💼 What This Demonstrates
+
+*The assignment states this mirrors real job responsibilities:*
+> "You will be responsible for quality gates around functions that directly affect user funds and rebalances."
+
+### How This Assignment Mirrors the Job
+
+#### 1. **Edge Case Thinking Under High Volatility** ✅
+**Job Requirement:** *"Edge case thinking under high volatility"*
+
+**How I Demonstrated This:**
+- **TC-501:** High volatility rapid calls - Multiple price requests during market crash
+- **TC-503:** Prolonged outage with stale cache - Cache age during 50% price swings
+- **TC-502:** Intermittent failures with recovery - API degrading then recovering
+- **Cache strategy:** Different behavior for transient vs. data integrity errors
+
+**Real-world scenarios tested:**
+```python
+# Flash crash: BTC drops 50% in 2 minutes
+- System must fetch current prices, not rely on stale cache
+- Rate limiting kicks in during high traffic
+- Cache used only when safe (transient errors, not corruption)
+```
+
+---
+
+#### 2. **Deciding Which Failures Must Block Trading or Deploys** ✅
+**Job Requirement:** *"Deciding which failures must block trading or deploys"*
+
+**How I Demonstrated This:**
+- **CRITICAL severity (11 tests):** Block trading immediately
+  - Negative prices → Financial catastrophe
+  - Zero prices → Division errors
+  - API failure without cache → Cannot trade
+  - Cache pollution → Wrong prices returned
+
+- **HIGH severity (15 tests):** Alert + fail-safe
+  - Missing data with cache → Degrade gracefully
+  - Rate limiting → Respect Retry-After
+  - Network timeout → Use cache temporarily
+
+- **LOW severity (8 tests):** Log only
+  - Successful operations
+  - Performance optimizations
+
+**Decision framework:**
+```
+Data integrity violation → CRITICAL → HALT TRADING
+Transient API error + cache → HIGH → ALERT + CONTINUE
+Normal operations → LOW → LOG ONLY
+```
+
+---
+
+#### 3. **Designing Tests that Fit into CI, Not Just Ad Hoc Scripts** ✅
+**Job Requirement:** *"Designing tests that fit into CI, not just ad hoc scripts"*
+
+**How I Demonstrated This:**
+
+**Pytest markers for selective execution:**
+```bash
+pytest -m critical  # Only merge-blocking tests
+pytest -m high      # Alert-worthy tests
+pytest -m low       # Logging tests
+```
+
+**GitHub Actions CI/CD pipeline:**
+- ✅ **Critical test job** - Blocks PR merge if fails
+- ✅ **Multi-Python versions** - Tests on 3.8, 3.9, 3.10, 3.11
+- ✅ **Coverage enforcement** - Requires ≥95%
+- ✅ **Linting and type checking** - Code quality gates
+
+**Quality gates:**
+```yaml
+# .github/workflows/test.yml
+critical-tests:  # MERGE BLOCKER
+  - pytest -m critical
+  - If fails → BLOCK MERGE
+
+security-scan:
+  - pip-audit
+  - Advisory only
+```
+
+**NOT ad hoc scripts:**
+- ❌ Manual test runs
+- ❌ One-off validation scripts
+- ❌ Tests that only work locally
+
+**Production-ready CI:**
+- ✅ Automated on every PR
+- ✅ Reproducible across environments
+- ✅ Clear pass/fail criteria
+- ✅ Blocks bad code from merging
+
+---
+
+### Assignment Requirements Coverage
+
+| Requirement | File | Status |
+|------------|------|--------|
+| **Normal case (200 OK)** | `tests/test_price.py` TC-001 | ✅ |
+| **API down (500 error)** | `tests/test_price.py` TC-101, TC-102 | ✅ |
+| **Bad data cases** | `tests/test_price.py` TC-201-208 | ✅ |
+| **Rate limit (429)** | `tests/test_price.py` TC-301-304 | ✅ |
+| **Test Plan with severity** | `docs/TEST_PLAN.md` | ✅ |
+| **README with reasoning** | `README.md` (this file) | ✅ |
+| **AI disclosure** | Section below | ✅ |
+
+### Stretch Goals Coverage
+
+| Stretch Goal | File | Status |
+|--------------|------|--------|
+| **Mock implementation** | `src/price_client.py` | ✅ |
+| **Test matrix for TM100** | `docs/TEST_MATRIX.md` | ✅ |
+| **CI/CD setup** | `.github/workflows/test.yml` | ✅ |
+
+---
+
 ## 📁 Project Structure
 
 ```
@@ -53,7 +175,7 @@ token-metrics-qa-assignment/
 │
 ├── tests/
 │   ├── __init__.py
-│   └── test_price.py             # Comprehensive pytest suite (50+ test cases)
+│   └── test_price.py             # Comprehensive pytest suite (34 test cases, 100% coverage)
 │
 ├── .gitignore                    # Python gitignore
 ├── pytest.ini                    # Pytest configuration
@@ -120,15 +242,15 @@ pytest tests/ -v
 **Expected output:**
 ```
 ==================== test session starts ====================
-collected 50+ items
+collected 34 items
 
 tests/test_price.py::TestNormalOperation::test_successful_price_fetch_with_valid_response PASSED [  2%]
-tests/test_price.py::TestNormalOperation::test_successful_price_fetch_with_dict_response PASSED [  4%]
-tests/test_price.py::TestNormalOperation::test_price_caching_on_success PASSED [  6%]
-tests/test_price.py::TestAPIFailures::test_api_500_error_with_retries PASSED [  8%]
+tests/test_price.py::TestNormalOperation::test_successful_price_fetch_with_dict_response PASSED [  5%]
+tests/test_price.py::TestNormalOperation::test_price_caching_on_success PASSED [  8%]
+tests/test_price.py::TestAPIFailures::test_api_500_error_with_retries PASSED [ 11%]
 ...
 
-==================== 50+ passed in 2.34s ====================
+==================== 34 passed in 0.92s ====================
 ```
 
 ---
@@ -139,7 +261,7 @@ tests/test_price.py::TestAPIFailures::test_api_500_error_with_retries PASSED [  
 pytest tests/ -v --cov=src --cov-report=term-missing
 ```
 
-**Expected coverage:** >95%
+**Expected coverage:** 100% (exceeds 95% requirement)
 
 ---
 
@@ -196,7 +318,8 @@ Full details in [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md).
 | **Rate Limiting (429)** | 4 | Retry-After, fail-fast mode |
 | **Edge Cases** | 7 | Input validation, concurrency, security |
 | **Integration Scenarios** | 3 | High volatility, intermittent failures |
-| **TOTAL** | **30+** | >95% code coverage |
+| **Session/Performance** | 4 | Session creation, cache performance |
+| **TOTAL** | **34** | 100% code coverage |
 
 ---
 
@@ -424,7 +547,7 @@ Two modes:
 - Python project scaffolding (requirements.txt, pytest.ini, .gitignore)
 
 #### 2. **Code Volume**
-- Writing 50+ test cases with similar structure (arrange-act-assert pattern)
+- Writing 34 test cases with similar structure (arrange-act-assert pattern)
 - Creating comprehensive docstrings for each test
 - Generating GitHub Actions workflow YAML
 
@@ -459,7 +582,7 @@ Two modes:
 - Boilerplate reduction (pytest fixtures, GitHub Actions)
 - Syntax correctness (Python idioms, proper mocking)
 
-**Result:** I focused on the **"what" and "why"** (test strategy, severity reasoning), while AI accelerated the **"how"** (implementing 50+ tests quickly).
+**Result:** I focused on the **"what" and "why"** (test strategy, severity reasoning), while AI accelerated the **"how"** (implementing 34 tests quickly with consistent quality).
 
 ---
 

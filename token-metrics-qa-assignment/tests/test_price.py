@@ -46,6 +46,7 @@ def mock_session():
 class TestNormalOperation:
     """Test suite for successful price fetching scenarios"""
 
+    @pytest.mark.critical
     def test_successful_price_fetch_with_valid_response(self, mock_session):
         """
         Test Case: TC-001
@@ -69,6 +70,7 @@ class TestNormalOperation:
         assert isinstance(price, float)
         mock_session.get.assert_called_once()
 
+    @pytest.mark.high
     def test_successful_price_fetch_with_dict_response(self, mock_session):
         """
         Test Case: TC-002
@@ -88,6 +90,7 @@ class TestNormalOperation:
         # Assert
         assert price == 3500.25
 
+    @pytest.mark.high
     def test_price_caching_on_success(self, mock_session):
         """
         Test Case: TC-003
@@ -122,6 +125,7 @@ class TestNormalOperation:
 class TestAPIFailures:
     """Test suite for API server error scenarios"""
 
+    @pytest.mark.critical
     def test_api_500_error_with_retries(self, mock_session):
         """
         Test Case: TC-101
@@ -141,6 +145,8 @@ class TestAPIFailures:
 
         assert "Failed to fetch price" in str(exc_info.value)
 
+    @pytest.mark.critical
+
     def test_api_503_service_unavailable(self, mock_session):
         """
         Test Case: TC-102
@@ -157,6 +163,8 @@ class TestAPIFailures:
         # Act & Assert
         with pytest.raises(PriceClientError):
             get_hyperliquid_price("ETH", use_cache_fallback=False, session=mock_session)
+
+    @pytest.mark.high
 
     def test_api_failure_with_cache_fallback(self, mock_session):
         """
@@ -185,6 +193,8 @@ class TestAPIFailures:
         assert price1 == 50000.0
         assert price2 == 50000.0  # Falls back to cached value
 
+    @pytest.mark.critical
+
     def test_api_failure_without_cache_raises_error(self, mock_session):
         """
         Test Case: TC-104
@@ -200,6 +210,8 @@ class TestAPIFailures:
             get_hyperliquid_price("BTC", use_cache_fallback=False, session=mock_session)
 
         assert "Failed to fetch price" in str(exc_info.value)
+
+    @pytest.mark.high
 
     def test_timeout_error_handling(self, mock_session):
         """
@@ -225,6 +237,8 @@ class TestAPIFailures:
 class TestBadDataHandling:
     """Test suite for invalid/malformed price data scenarios"""
 
+    @pytest.mark.critical
+
     def test_negative_price_value(self, mock_session):
         """
         Test Case: TC-201
@@ -246,6 +260,8 @@ class TestBadDataHandling:
         assert "must be positive" in str(exc_info.value).lower()
         assert "-100" in str(exc_info.value)
 
+    @pytest.mark.critical
+
     def test_zero_price_value(self, mock_session):
         """
         Test Case: TC-202
@@ -264,6 +280,8 @@ class TestBadDataHandling:
             get_hyperliquid_price("BTC", session=mock_session)
 
         assert "must be positive" in str(exc_info.value).lower()
+
+    @pytest.mark.high
 
     def test_null_price_value(self, mock_session):
         """
@@ -286,6 +304,8 @@ class TestBadDataHandling:
         assert ("missing" in str(exc_info.value).lower() or
                 "invalid price format" in str(exc_info.value).lower())
 
+    @pytest.mark.high
+
     def test_missing_price_field(self, mock_session):
         """
         Test Case: TC-204
@@ -304,6 +324,8 @@ class TestBadDataHandling:
             get_hyperliquid_price("BTC", use_cache_fallback=False, session=mock_session)
 
         assert "missing" in str(exc_info.value).lower()
+
+    @pytest.mark.high
 
     def test_missing_price_field_with_cache_fallback(self, mock_session):
         """
@@ -332,6 +354,8 @@ class TestBadDataHandling:
         assert price1 == 45000.0
         assert price2 == 45000.0  # Uses cache
 
+    @pytest.mark.critical
+
     def test_non_numeric_price_value(self, mock_session):
         """
         Test Case: TC-206
@@ -350,6 +374,8 @@ class TestBadDataHandling:
             get_hyperliquid_price("BTC", session=mock_session)
 
         assert "Invalid price format" in str(exc_info.value)
+
+    @pytest.mark.low
 
     def test_extremely_large_price_value(self, mock_session):
         """
@@ -371,6 +397,8 @@ class TestBadDataHandling:
         # Assert
         assert price == 999999999999.99
         # Note: In production, may want to add sanity checks for price bounds
+
+    @pytest.mark.low
 
     def test_price_with_many_decimal_places(self, mock_session):
         """
@@ -399,6 +427,8 @@ class TestBadDataHandling:
 class TestRateLimiting:
     """Test suite for rate limiting scenarios"""
 
+    @pytest.mark.high
+
     def test_rate_limit_429_with_retry_after_header(self, mock_session):
         """
         Test Case: TC-301
@@ -424,6 +454,8 @@ class TestRateLimiting:
         # Assert
         assert price == 45000.0
         mock_sleep.assert_called_once_with(2)
+
+    @pytest.mark.high
 
     def test_rate_limit_429_without_retry_after_header(self, mock_session):
         """
@@ -451,6 +483,8 @@ class TestRateLimiting:
         assert price == 45000.0
         mock_sleep.assert_called_once_with(60)  # Default retry after
 
+    @pytest.mark.high
+
     def test_rate_limit_fail_fast_mode(self, mock_session):
         """
         Test Case: TC-303
@@ -471,6 +505,8 @@ class TestRateLimiting:
 
         assert exc_info.value.retry_after == 60
         assert "Rate limited" in str(exc_info.value)
+
+    @pytest.mark.low
 
     def test_rate_limit_retry_after_non_numeric(self, mock_session):
         """
@@ -509,6 +545,8 @@ class TestRateLimiting:
 class TestEdgeCasesAndSecurity:
     """Test suite for edge cases, input validation, and security concerns"""
 
+    @pytest.mark.high
+
     def test_empty_symbol_string(self, mock_session):
         """
         Test Case: TC-401
@@ -522,6 +560,8 @@ class TestEdgeCasesAndSecurity:
 
         assert "Invalid symbol" in str(exc_info.value)
 
+    @pytest.mark.high
+
     def test_none_symbol(self, mock_session):
         """
         Test Case: TC-402
@@ -532,6 +572,8 @@ class TestEdgeCasesAndSecurity:
         # Act & Assert
         with pytest.raises(ValueError):
             get_hyperliquid_price(None, session=mock_session)
+
+    @pytest.mark.critical
 
     def test_malformed_json_response(self, mock_session):
         """
@@ -550,6 +592,8 @@ class TestEdgeCasesAndSecurity:
         with pytest.raises(PriceClientError):
             get_hyperliquid_price("BTC", use_cache_fallback=False, session=mock_session)
 
+    @pytest.mark.high
+
     def test_empty_response_body(self, mock_session):
         """
         Test Case: TC-404
@@ -566,6 +610,8 @@ class TestEdgeCasesAndSecurity:
         # Act & Assert
         with pytest.raises(InvalidPriceDataError):
             get_hyperliquid_price("BTC", use_cache_fallback=False, session=mock_session)
+
+    @pytest.mark.high
 
     def test_symbol_not_found_in_response(self, mock_session):
         """
@@ -587,6 +633,8 @@ class TestEdgeCasesAndSecurity:
             get_hyperliquid_price("BTC", use_cache_fallback=False, session=mock_session)
 
         assert "missing" in str(exc_info.value).lower()
+
+    @pytest.mark.critical
 
     def test_concurrent_calls_cache_isolation(self, mock_session):
         """
@@ -624,6 +672,8 @@ class TestEdgeCasesAndSecurity:
         assert cached_eth == 3000.0
         assert cached_btc != cached_eth  # Different symbols have different cached prices
 
+    @pytest.mark.low
+
     def test_unicode_symbol_handling(self, mock_session):
         """
         Test Case: TC-407
@@ -653,6 +703,8 @@ class TestEdgeCasesAndSecurity:
 class TestRealisticScenarios:
     """Integration-style tests simulating realistic production scenarios"""
 
+    @pytest.mark.critical
+
     def test_high_volatility_rapid_calls(self, mock_session):
         """
         Test Case: TC-501
@@ -678,6 +730,8 @@ class TestRealisticScenarios:
 
         # Assert
         assert fetched_prices == prices
+
+    @pytest.mark.high
 
     def test_intermittent_failures_with_recovery(self, mock_session):
         """
@@ -711,6 +765,8 @@ class TestRealisticScenarios:
         assert price2 == 45000.0  # Cache during failure
         assert price3 == 46000.0  # New price after recovery
 
+    @pytest.mark.critical
+
     def test_complete_failure_scenario_blocks_trading(self, mock_session):
         """
         Test Case: TC-503
@@ -733,6 +789,8 @@ class TestRealisticScenarios:
 class TestSessionManagement:
     """Tests for session creation and management"""
 
+    @pytest.mark.low
+
     def test_get_session_with_retries_creates_session(self):
         """
         Test Case: TC-701
@@ -748,6 +806,8 @@ class TestSessionManagement:
         # Verify session has adapters mounted
         assert 'http://' in session.adapters
         assert 'https://' in session.adapters
+
+    @pytest.mark.low
 
     def test_default_session_creation_when_none_provided(self):
         """
@@ -776,6 +836,8 @@ class TestSessionManagement:
 class TestPerformanceAndReliability:
     """Tests for performance characteristics and reliability"""
 
+    @pytest.mark.low
+
     def test_cache_performance_benefit(self, mock_session):
         """
         Test Case: TC-601
@@ -801,6 +863,8 @@ class TestPerformanceAndReliability:
         assert cached_price == 45000.0
         # Verify API was called during failure (before falling back)
         assert mock_session.get.called
+
+    @pytest.mark.low
 
     def test_exception_message_clarity(self, mock_session):
         """
