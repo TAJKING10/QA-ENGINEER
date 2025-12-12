@@ -724,9 +724,9 @@ Run load tests:
 ## 📞 Contact
 
 **Candidate:** Toufic
-**Email:** [Your Email]
-**LinkedIn:** [Your LinkedIn]
-**GitHub:** [Your GitHub Profile]
+**Email:** [toufic-jandah@hotmail.com]
+**LinkedIn:** [https://www.linkedin.com/in/toufic-jandah-1ab9a4310/]
+**GitHub:** [https://github.com/TAJKING10]
 
 ---
 
@@ -744,5 +744,5 @@ This project is submitted as part of a job application take-home assignment for 
 
 ---
 
-**Last Updated:** December 2024
+**Last Updated:** December 2025
 **Version:** 1.0
